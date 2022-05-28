@@ -33,7 +33,7 @@ class ProductFeatures {
 
   //pagination
   pagination(pagePerView) {
-    const pageNumber = this.queryString.page
+    const pageNumber = this.queryString.page || 1
     const skipCount = pagePerView * (pageNumber - 1)
     this.query = this.query.limit(pagePerView).skip(skipCount)
     return this;
