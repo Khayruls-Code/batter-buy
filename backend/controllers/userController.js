@@ -3,7 +3,7 @@ const User = require('../models/userModel');
 const ErrorHandaler = require('../utils/errorHandaler');
 const tokenStore = require('../utils/jwtToken');
 const sendEmail = require('../utils/sendEmail');
-const crypto = require("crypto")
+const crypto = require("crypto");
 
 //register user
 exports.registerUser = catchAsyncError(async (req, res, next) => {
@@ -117,4 +117,109 @@ exports.resetPassword = catchAsyncError(async (req, res, next) => {
   await user.save()
 
   tokenStore(user, 200, res)
+})
+
+//get user details
+exports.getUserDetails = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.user.id)
+  res.status(200).json({
+    success: true,
+    user
+  })
+})
+
+//update user password
+exports.updateUserPassword = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select("+password")
+  const isPasswordMatched = await user.comparePassword(req.body.oldPassword)
+  if (!isPasswordMatched) {
+    return next(new ErrorHandaler("Old Password is incorrect", 400))
+  }
+
+  if (req.body.newPassword !== req.body.conPassword) {
+    return next(new ErrorHandaler("Passwords dose not matched", 400))
+  }
+
+  user.password = req.body.newPassword
+  await user.save()
+
+  tokenStore(user, 200, res)
+})
+
+//update user details
+exports.updateUserDetails = catchAsyncError(async (req, res, next) => {
+  const updateData = {
+    name: req.body.name,
+    email: req.body.email
+  }
+  ///we will use cloudinary to add avatar
+
+  const user = await User.findByIdAndUpdate(req.user.id, updateData, {
+    new: true,
+    runValidators: true,
+  })
+
+  res.status(200).json({
+    success: true,
+    message: "Details updated successfully",
+    user
+  })
+})
+
+//get all user ---admin
+exports.getAllUsers = catchAsyncError(async (req, res, next) => {
+  const users = await User.find()
+  res.status(200).json({
+    success: true,
+    users
+  })
+})
+
+//get single user --admin
+exports.getSingleUser = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.params.id)
+  if (!user) {
+    return next(new ErrorHandaler(`User not found for id ${req.params.id}`))
+  }
+  res.status(200).json({
+    success: true,
+    user
+  })
+})
+
+//update user role ---admin
+exports.updateUserRole = catchAsyncError(async (req, res, next) => {
+  const updateData = {
+    name: req.body.name,
+    email: req.body.email,
+    role: req.body.role
+  }
+  ///we will use cloudinary to add avatar
+
+  const user = await User.findByIdAndUpdate(req.params.id, updateData, {
+    new: true,
+    runValidators: true,
+  })
+
+  res.status(200).json({
+    success: true,
+    message: "Details updated successfully",
+    user
+  })
+})
+
+//delete user admin
+exports.deleteUser = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.params.id)
+  if (!user) {
+    return next(new ErrorHandaler(`User not found for id ${req.params.id}`))
+  }
+  //we will remove cloudinary
+
+  await user.remove()
+
+  res.status(200).json({
+    success: true,
+    message: "User Deleted Successfully"
+  })
 })
